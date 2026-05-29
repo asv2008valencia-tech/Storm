@@ -163,11 +163,14 @@ create_ability_toggle("Fling Player", Vector3.new(0, 0, 0), false)
 create_ability_toggle("Fling 2.0", Vector3.new(0, -2.5, 0), false)
 create_ability_toggle("Platform Fly", Vector3.new(0, -4, 0), false)
 create_ability_toggle("Magic Carpet", Vector3.new(0, -3.6, 0), false)
-create_ability_toggle("Elevator", Vector3.new(0, -3, 0), false) do
+create_ability_toggle("Elevator", Vector3.new(0, -3, 0), false)
+
+do
 	local heartbeat_connection_elev
 	local is_elevator_enabled = false
 	local saved_cframe_elev = nil
 end
+
 do
 	local anti_jump_connection
 	local anti_jump_enabled = false
@@ -209,6 +212,7 @@ do
 		end
 	})
 end
+
 local welder_players_service = game:GetService("Players")
 local welder_run_service = game:GetService("RunService")
 local welder_local_player = welder_players_service.LocalPlayer
@@ -234,6 +238,7 @@ function welder_utils.tp(_target_player, _offset_cframe)
 		player_root.Velocity = Vector3.zero
 	end
 end
+
 local rocket_first_enabled = false
 local rocket_first_connection
 local target_players_service = game:GetService("Players")
@@ -261,6 +266,7 @@ function target_utils.tp(_target_player, _offset_cframe)
 		player_root.Velocity = Vector3.zero
 	end
 end
+
 local infinite_jump_enabled = false
 local infinite_jump_connection
 main_tab:CreateToggle({
@@ -288,6 +294,7 @@ main_tab:CreateToggle({
 		end)
 	end
 })
+
 main_tab:CreateToggle({
 	Name = "Speed Boost (slow)",
 	CurrentValue = false,
@@ -313,6 +320,7 @@ main_tab:CreateToggle({
 		end)
 	end
 })
+
 main_tab:CreateToggle({
 	Name = "Speed Boost (medium)",
 	CurrentValue = false,
@@ -338,6 +346,7 @@ main_tab:CreateToggle({
 		end)
 	end
 })
+
 main_tab:CreateToggle({
 	Name = "Speed Boost (fast)",
 	CurrentValue = false,
@@ -363,6 +372,7 @@ main_tab:CreateToggle({
 		end)
 	end
 })
+
 main_tab:CreateToggle({
 	Name = "Movement Breaker",
 	CurrentValue = false,
@@ -387,7 +397,9 @@ main_tab:CreateToggle({
 			target_utils.glue(selected_target, true)
 		end)
 	end
-}) do
+})
+
+do
 	local rocket_connection
 	local rocket_enabled
 	local rocket_saved_cframe = false
@@ -454,6 +466,8 @@ main_tab:CreateToggle({
 		end
 	})
 end
+
+local og_cframe = nil
 main_tab:CreateToggle({
 	Name = "GODSPEED Rocket Target",
 	CurrentValue = false,
@@ -514,6 +528,7 @@ main_tab:CreateToggle({
 		end)
 	end
 })
+
 local games_tab = main_window:CreateTab("Games", 4483362458)
 local game_target = nil
 local word_to_guess = ""
@@ -543,6 +558,7 @@ games_tab:CreateInput({
 		end
 	end
 })
+
 games_tab:CreateInput({
 	Name = "Word To Guess",
 	PlaceholderText = "Word they must say",
@@ -551,6 +567,7 @@ games_tab:CreateInput({
 		word_to_guess = (tostring(_inputText or "")):lower()
 	end
 })
+
 games_tab:CreateButton({
 	Name = "Guess To Jump",
 	Callback = function()
@@ -578,10 +595,13 @@ games_tab:CreateButton({
 		end)
 	end
 })
+
 local nan_fling_tab = main_window:CreateTab("NaN flinging", 4483362458)
 local nan_target_name = ""
 local nan_fling_connection
-local nan_fling_call_counter = 0 nan_fling_tab:CreateInput({
+local nan_fling_call_counter = 0
+
+nan_fling_tab:CreateInput({
 	Name = "Select Target",
 	PlaceholderText = "Username / DisplayName",
 	RemoveTextAfterFocusLost = false,
@@ -589,6 +609,7 @@ local nan_fling_call_counter = 0 nan_fling_tab:CreateInput({
 		nan_target_name = tostring(_inputText or "")
 	end
 })
+
 nan_fling_tab:CreateButton({
 	Name = "NaN Fling",
 	Callback = function()
@@ -640,20 +661,24 @@ nan_fling_tab:CreateButton({
 					player_humanoid.PlatformStand = saved_platform_stand
 					player_root.AssemblyLinearVelocity = Vector3.zero
 					player_root.AssemblyAngularVelocity = Vector3.zero
-					player_root.CFrame = saved_cframe player_root.Velocity = saved_velocity
+					player_root.CFrame = saved_cframe
+					player_root.Velocity = saved_velocity
 					player_root.RotVelocity = Vector3.zero
 					pcall(sethiddenproperty, player_root, "PhysicsRepRootPart", nil)
 				end)
 				return
 			end
 			player_root.CFrame = target_root.CFrame
-			player_root.AssemblyLinearVelocity = nan_vector player_root.AssemblyAngularVelocity = nan_vector pcall(function()
+			player_root.AssemblyLinearVelocity = nan_vector
+			player_root.AssemblyAngularVelocity = nan_vector
+			pcall(function()
 				player_humanoid:Move(nan_vector)
 			end)
 			pcall(sethiddenproperty, player_root, "PhysicsRepRootPart", target_root)
 		end)
 	end
 })
+
 local other_tab = main_window:CreateTab("Other Stuff", 4483362458)
 local anti_fling_button = other_tab:CreateButton({
 	Name = "Anti Fling",
