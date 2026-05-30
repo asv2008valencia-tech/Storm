@@ -596,10 +596,12 @@ games_tab:CreateButton({
 	end
 })
 
+--// ============== NaN FLING MEJORADO Y REPARADO ==============
 local nan_fling_tab = main_window:CreateTab("NaN flinging", 4483362458)
 local nan_target_name = ""
-local nan_fling_connection
+local nan_fling_connection = nil
 local nan_fling_call_counter = 0
+local is_nan_fling_active = false
 
 nan_fling_tab:CreateInput({
 	Name = "Select Target",
@@ -614,70 +616,167 @@ nan_fling_tab:CreateButton({
 	Name = "NaN Fling",
 	Callback = function()
 		if nan_target_name == "" then
+			rayfield_lib:Notify({
+				Title = "Error",
+				Content = "Select a target first!",
+				Duration = 2
+			})
 			return
 		end
-		nan_fling_call_counter = nan_fling_call_counter + (1)
+		
+		nan_fling_call_counter = nan_fling_call_counter + 1
 		local current_fling_id = nan_fling_call_counter
+		
 		if nan_fling_connection then
 			nan_fling_connection:Disconnect()
 			nan_fling_connection = nil
 		end
-		local target_player
+		
+		local target_player = nil
+		-- Buscar target por nombre o DisplayName
 		for _idx, _player in ipairs(target_players_service:GetPlayers()) do
-			if _player ~= local_player_2 and((_player.Name:lower()):find(nan_target_name:lower()) or _player.DisplayName
-			and(_player.DisplayName:lower()):find(nan_target_name:lower())) then
-				target_player = _player
-				break
+			if _player ~= local_player_2 then
+				local player_name_lower = _player.Name:lower()
+				local display_name_lower = (_player.DisplayName or _player.Name):lower()
+				local search_lower = nan_target_name:lower()
+				
+				if player_name_lower:find(search_lower) or display_name_lower:find(search_lower) then
+					target_player = _player
+					break
+				end
 			end
 		end
+		
 		if not target_player or not target_player.Character then
+			rayfield_lib:Notify({
+				Title = "Error",
+				Content = "Target not found!",
+				Duration = 2
+			})
 			return
 		end
+		
 		local player_char = local_player_2.Character or local_player_2.CharacterAdded:Wait()
-		local player_humanoid = player_char:WaitForChild("Humanoid")
-		local player_root = player_char:WaitForChild("HumanoidRootPart")
+		local player_humanoid = player_char:FindFirstChildOfClass("Humanoid")
+		local player_root = player_char:FindFirstChild("HumanoidRootPart")
 		local target_root = target_player.Character:FindFirstChild("HumanoidRootPart")
-		if not target_root then
+		
+		if not player_humanoid or not player_root or not target_root then
+			rayfield_lib:Notify({
+				Title = "Error",
+				Content = "Missing character parts!",
+				Duration = 2
+			})
 			return
 		end
+		
+		-- Guardar estado original
 		local saved_cframe = player_root.CFrame
 		local saved_velocity = player_root.Velocity
 		local saved_platform_stand = player_humanoid.PlatformStand
+		local saved_humanoid_state = player_humanoid:GetState()
+		
+		-- Crear NaN
 		local nan_value = (0) / (0)
 		local nan_vector = Vector3.new(nan_value, nan_value, nan_value)
+		
+		-- Activar PlatformStand y cambiar estado
 		player_humanoid.PlatformStand = true
+		player_humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+		
+		is_nan_fling_active = true
 		local fling_start_time = tick()
+		local fling_duration = 2.0 -- Duración del fling en segundos
+		
+		rayfield_lib:Notify({
+			Title = "NaN Fling",
+			Content = "Fling iniciado: " .. target_player.Name,
+			Duration = 1
+		})
+		
 		nan_fling_connection = target_run_service.Heartbeat:Connect(function()
+			-- Verificar si ya no es el fling activo
 			if nan_fling_call_counter ~= current_fling_id then
 				return
 			end
-			if tick() - fling_start_time >= 1.5 then
+			
+			-- Verificar tiempo de duración
+			if tick() - fling_start_time >= fling_duration then
 				nan_fling_connection:Disconnect()
 				nan_fling_connection = nil
+				is_nan_fling_active = false
+				
+				-- Restaurar estado
 				task.defer(function()
 					if nan_fling_call_counter ~= current_fling_id then
 						return
 					end
-					player_humanoid.PlatformStand = saved_platform_stand
-					player_root.AssemblyLinearVelocity = Vector3.zero
-					player_root.AssemblyAngularVelocity = Vector3.zero
-					player_root.CFrame = saved_cframe
-					player_root.Velocity = saved_velocity
-					player_root.RotVelocity = Vector3.zero
-					pcall(sethiddenproperty, player_root, "PhysicsRepRootPart", nil)
+					
+					if player_humanoid and player_humanoid.Parent then
+						player_humanoid.PlatformStand = saved_platform_stand
+						player_humanoid:ChangeState(saved_humanoid_state)
+					end
+					
+					if player_root and player_root.Parent then
+						player_root.CFrame = saved_cframe
+						player_root.AssemblyLinearVelocity = Vector3.zero
+						player_root.AssemblyAngularVelocity = Vector3.zero
+						player_root.Velocity = saved_velocity
+						player_root.RotVelocity = Vector3.zero
+					end
+					
+					pcall(function()
+						sethiddenproperty(player_root, "PhysicsRepRootPart", nil)
+						sethiddenproperty(player_humanoid, "MoveDirectionInternal", Vector3.zero)
+					end)
 				end)
 				return
 			end
-			player_root.CFrame = target_root.CFrame
-			player_root.AssemblyLinearVelocity = nan_vector
-			player_root.AssemblyAngularVelocity = nan_vector
-			pcall(function()
-				player_humanoid:Move(nan_vector)
-			end)
-			pcall(sethiddenproperty, player_root, "PhysicsRepRootPart", target_root)
+			
+			-- CORE: Aplicar NaN fling
+			if target_root and target_root.Parent then
+				-- Posicionar en el target
+				player_root.CFrame = target_root.CFrame
+				
+				-- Aplicar velocidades NaN extremas
+				player_root.AssemblyLinearVelocity = nan_vector
+				player_root.AssemblyAngularVelocity = nan_vector
+				
+				-- Intentar mover el humanoide con NaN
+				pcall(function()
+					player_humanoid:Move(nan_vector)
+				end)
+				
+				-- Crear física rep para "enganchar" al target
+				pcall(function()
+					sethiddenproperty(player_root, "PhysicsRepRootPart", target_root)
+				end)
+				
+				-- Forzar estado Freefall continuamente
+				player_humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+			end
 		end)
 	end
 })
+
+nan_fling_tab:CreateButton({
+	Name = "Stop NaN Fling",
+	Callback = function()
+		if nan_fling_connection then
+			nan_fling_connection:Disconnect()
+			nan_fling_connection = nil
+		end
+		is_nan_fling_active = false
+		nan_fling_call_counter = nan_fling_call_counter + 1
+		rayfield_lib:Notify({
+			Title = "NaN Fling",
+			Content = "Fling detenido",
+			Duration = 1
+		})
+	end
+})
+
+--// ============== FIN NaN FLING ==============
 
 local other_tab = main_window:CreateTab("Other Stuff", 4483362458)
 local anti_fling_button = other_tab:CreateButton({
